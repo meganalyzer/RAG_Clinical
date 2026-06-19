@@ -1,0 +1,82 @@
+[
+  {
+    "patient_id": "P001",
+    "name": "Margaret Collins",
+    "age": 67,
+    "gender": "Female",
+    "diagnosis": "Type 2 Diabetes, Hypertension",
+    "medications": ["Metformin 500mg", "Lisinopril 10mg"],
+    "last_visit": "2024-11-03",
+    "notes": "Patient reports improved glucose control. HbA1c down from 8.2 to 7.4. Blood pressure stable at 128/82. Advised to continue current medication regimen and follow up in 3 months. No signs of peripheral neuropathy."
+  },
+  {
+    "patient_id": "P002",
+    "name": "David Okafor",
+    "age": 45,
+    "gender": "Male",
+    "diagnosis": "Asthma, Seasonal Allergies",
+    "medications": ["Albuterol inhaler", "Cetirizine 10mg", "Fluticasone nasal spray"],
+    "last_visit": "2024-10-18",
+    "notes": "Presented with increased inhaler use over past 4 weeks, averaging 5 puffs per day. Spirometry shows mild obstruction. Allergy season likely contributing. Initiated low-dose inhaled corticosteroid. Peak flow diary requested. Follow up in 6 weeks."
+  },
+  {
+    "patient_id": "P003",
+    "name": "Linda Zhao",
+    "age": 54,
+    "gender": "Female",
+    "diagnosis": "Breast Cancer Stage II (in remission)",
+    "medications": ["Tamoxifen 20mg", "Calcium supplement"],
+    "last_visit": "2024-12-01",
+    "notes": "18 months post-chemotherapy. Mammogram clear. CA 125 within normal limits. Patient reports fatigue and occasional joint pain, likely Tamoxifen side effects. Discussed options including dose adjustment. Bone density scan scheduled. Psychological support referral provided."
+  },
+  {
+    "patient_id": "P004",
+    "name": "James Patel",
+    "age": 72,
+    "gender": "Male",
+    "diagnosis": "Chronic Kidney Disease Stage 3, Atrial Fibrillation",
+    "medications": ["Apixaban 5mg", "Atorvastatin 40mg", "Furosemide 20mg"],
+    "last_visit": "2024-11-22",
+    "notes": "eGFR stable at 42. Potassium levels slightly elevated at 5.3 mEq/L. Cardiology consult recommended for AF management review. Patient adherent to low-sodium diet. Weight up 2kg since last visit, possible fluid retention. Furosemide dose under review."
+  },
+  {
+    "patient_id": "P005",
+    "name": "Aisha Tremblay",
+    "age": 29,
+    "gender": "Female",
+    "diagnosis": "Postpartum Depression, Iron Deficiency Anemia",
+    "medications": ["Sertraline 50mg", "Ferrous sulfate 325mg"],
+    "last_visit": "2024-12-10",
+    "notes": "8 months postpartum. PHQ-9 score improved from 16 to 9 over 6 weeks on Sertraline. Patient reports better sleep and engagement with infant. Hemoglobin up from 9.8 to 11.2 g/dL. Continue current treatment. Therapy referral accepted. Partner support noted as strong."
+  },
+  {
+    "patient_id": "P006",
+    "name": "Robert Nguyen",
+    "age": 61,
+    "gender": "Male",
+    "diagnosis": "COPD, Type 2 Diabetes",
+    "medications": ["Tiotropium inhaler", "Metformin 1000mg", "Insulin glargine"],
+    "last_visit": "2024-10-30",
+    "notes": "6-minute walk test shows reduced exercise tolerance compared to last year. FEV1 at 58% predicted. Glucose poorly controlled, HbA1c at 9.1. Insulin dose adjusted. Referred to pulmonary rehab. Smoking cessation counseling ongoing — patient reduced from 15 to 6 cigarettes per day."
+  },
+  {
+    "patient_id": "P007",
+    "name": "Sophie Andersen",
+    "age": 38,
+    "gender": "Female",
+    "diagnosis": "Migraine, Anxiety Disorder",
+    "medications": ["Sumatriptan 50mg PRN", "Escitalopram 10mg", "Propranolol 40mg"],
+    "last_visit": "2024-11-15",
+    "notes": "Migraine frequency reduced from 8 to 3 episodes per month since starting Propranolol. GAD-7 score 7, down from 13. Patient managing stress with CBT. Reported one episode of chest tightness on Propranolol — ECG normal. Continue monitoring. Next review in 2 months."
+  },
+  {
+    "patient_id": "P008",
+    "name": "Carlos Mensah",
+    "age": 50,
+    "gender": "Male",
+    "diagnosis": "Hypertension, Hyperlipidemia",
+    "medications": ["Amlodipine 10mg", "Rosuvastatin 20mg"],
+    "last_visit": "2024-12-05",
+    "notes": "Blood pressure 145/92 despite medication compliance. LDL down to 2.1 mmol/L. Lifestyle review shows high sodium intake and sedentary work. Added Ramipril 5mg. Referral to dietitian. Patient receptive to lifestyle changes. 10-year cardiovascular risk calculated at 18%."
+  }
+]

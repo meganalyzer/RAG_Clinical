@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EHR RAG — POC</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c27;
+    --border:    #252a38;
+    --accent:    #4fffb0;
+    --accent-dim:#1a4d3a;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --error:     #f87171;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 16px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 40px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* RAG pipeline diagram */
+  .pipeline {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+
+  .pipe-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .pipe-icon {
+    font-family: var(--mono);
+    font-size: 18px;
+  }
+
+  .pipe-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .pipe-label.active {
+    color: var(--accent);
+  }
+
+  .pipe-arrow {
+    font-family: var(--mono);
+    color: var(--border);
+    font-size: 18px;
+    padding: 0 4px;
+    flex-shrink: 0;
+    transition: color 0.3s;
+  }
+
+  .pipe-arrow.active { color: var(--accent); }
+
+  /* Query box */
+  .query-box {
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 24px;
+  }
+
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .suggestion {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: none;
+  }
+
+  .suggestion:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 300;
+    padding: 14px 16px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    height: 56px;
+    line-height: 1.5;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  button#ask-btn {
+    background: var(--accent);
+    color: #0f1117;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 20px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+
+  button#ask-btn:hover { opacity: 0.85; }
+  button#ask-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Answer panel */
+  .answer-panel {
+    width: 100%;
+    max-width: 720px;
+    display: none;
+  }
+
+  .answer-panel.visible { display: block; }
+
+  .answer-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .block-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .answer-text {
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  .sources-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .source-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 4px 10px;
+  }
+
+  /* What happened - RAG explanation */
+  .what-happened {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .what-happened p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-family: var(--mono);
+  }
+
+  .what-happened span { color: var(--text); }
+
+  /* Loading */
+  .loading {
+    display: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .loading.visible { display: flex; align-items: center; gap: 8px; }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  .error-msg {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--error);
+    background: var(--surface);
+    border: 1px solid var(--error);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  footer {
+    margin-top: 60px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">RAG Proof of Concept · EHR Data</div>
+  <h1>Query patient records<br>in plain English</h1>
+  <p class="subtitle">
+    Ask a question. The system retrieves relevant patient records from ChromaDB,
+    then sends them to an LLM as context. That's RAG.
+  </p>
+</header>
+
+<!-- Live RAG pipeline diagram -->
+<div class="pipeline" id="pipeline">
+  <div class="pipe-step">
+    <span class="pipe-icon">💬</span>
+    <span class="pipe-label" id="step-question">Your question</span>
+  </div>
+  <div class="pipe-arrow" id="arrow-1">→</div>
+  <div class="pipe-step">
+    <span class="pipe-icon">🔍</span>
+    <span class="pipe-label" id="step-retrieve">Vector search<br>ChromaDB</span>
+  </div>
+  <div class="pipe-arrow" id="arrow-2">→</div>
+  <div class="pipe-step">
+    <span class="pipe-icon">📄</span>
+    <span class="pipe-label" id="step-context">Relevant chunks<br>retrieved</span>
+  </div>
+  <div class="pipe-arrow" id="arrow-3">→</div>
+  <div class="pipe-step">
+    <span class="pipe-icon">🤖</span>
+    <span class="pipe-label" id="step-llm">LLM reads<br>context + question</span>
+  </div>
+  <div class="pipe-arrow" id="arrow-4">→</div>
+  <div class="pipe-step">
+    <span class="pipe-icon">✅</span>
+    <span class="pipe-label" id="step-answer">Grounded<br>answer</span>
+  </div>
+</div>
+
+<div class="query-box">
+  <div class="suggestions">
+    <button class="suggestion" onclick="setQuestion(this)">Which patients are on Metformin?</button>
+    <button class="suggestion" onclick="setQuestion(this)">Who has both diabetes and another chronic condition?</button>
+    <button class="suggestion" onclick="setQuestion(this)">Summarize patients with respiratory conditions</button>
+    <button class="suggestion" onclick="setQuestion(this)">Which patients had improving lab results?</button>
+    <button class="suggestion" onclick="setQuestion(this)">Who was referred to a specialist recently?</button>
+  </div>
+  <div class="input-row">
+    <textarea id="question" placeholder="Ask anything about the patient records..."></textarea>
+    <button id="ask-btn" onclick="askQuestion()">Ask →</button>
+  </div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <span>Retrieving records and querying LLM...</span>
+</div>
+
+<div class="error-msg" id="error"></div>
+
+<div class="answer-panel" id="answer-panel">
+
+  <div class="what-happened" id="what-happened">
+    <p></p>
+  </div>
+
+  <div class="answer-block">
+    <div class="block-label">Answer</div>
+    <div class="answer-text" id="answer-text"></div>
+  </div>
+
+  <div class="answer-block">
+    <div class="block-label">Retrieved from these records</div>
+    <div class="sources-list" id="sources-list"></div>
+  </div>
+
+</div>
+
+<footer>EHR RAG POC · Built with ChromaDB + Groq + FastAPI · Synthetic data only</footer>
+
+<script>
+  function setQuestion(btn) {
+    document.getElementById('question').value = btn.textContent;
+    document.getElementById('question').focus();
+  }
+
+  function animatePipeline(step) {
+    const steps = ['step-question','step-retrieve','step-context','step-llm','step-answer'];
+    const arrows = ['arrow-1','arrow-2','arrow-3','arrow-4'];
+
+    // Reset
+    steps.forEach(s => document.getElementById(s).classList.remove('active'));
+    arrows.forEach(a => document.getElementById(a).classList.remove('active'));
+
+    if (step === 0) return;
+
+    for (let i = 0; i < step && i < steps.length; i++) {
+      document.getElementById(steps[i]).classList.add('active');
+    }
+    for (let i = 0; i < step - 1 && i < arrows.length; i++) {
+      document.getElementById(arrows[i]).classList.add('active');
+    }
+  }
+
+  async function askQuestion() {
+    const question = document.getElementById('question').value.trim();
+    if (!question) return;
+
+    // Reset UI
+    document.getElementById('answer-panel').classList.remove('visible');
+    document.getElementById('error').classList.remove('visible');
+    document.getElementById('loading').classList.add('visible');
+    document.getElementById('ask-btn').disabled = true;
+
+    // Animate pipeline step by step
+    animatePipeline(1);
+    await delay(400);
+    animatePipeline(2);
+    await delay(500);
+    animatePipeline(3);
+
+    try {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+
+      await delay(300);
+      animatePipeline(4);
+      await delay(400);
+      animatePipeline(5);
+
+      // Populate answer
+      document.getElementById('answer-text').textContent = data.answer;
+
+      const sourcesList = document.getElementById('sources-list');
+      sourcesList.innerHTML = '';
+      data.sources.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'source-tag';
+        tag.textContent = s;
+        sourcesList.appendChild(tag);
+      });
+
+      // Plain English explanation of what just happened
+      document.getElementById('what-happened').querySelector('p').innerHTML =
+        `<span>What just happened:</span> Your question was embedded into a vector and compared against ${data.sources.length * 2}+ patient records in ChromaDB. ` +
+        `The ${data.sources.length} closest matches (${data.sources.join(', ')}) were retrieved and sent to Llama 3 as context. ` +
+        `The LLM answered using only that context — it did not guess from training data.`;
+
+      document.getElementById('loading').classList.remove('visible');
+      document.getElementById('answer-panel').classList.add('visible');
+
+    } catch (err) {
+      animatePipeline(0);
+      document.getElementById('loading').classList.remove('visible');
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = `Error: ${err.message}. Make sure the server is running (uvicorn app:app --reload) and ingest.py has been run.`;
+      errorEl.classList.add('visible');
+    }
+
+    document.getElementById('ask-btn').disabled = false;
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Enter to submit
+  document.getElementById('question').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion(); }
+  });
+</script>
+</body>
+</html>

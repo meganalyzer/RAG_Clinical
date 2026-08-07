@@ -1,0 +1,22 @@
+# ── OPEN WEIGHT UPDATE ──────────────────────────────────────────────────────
+# OLD requirements (Groq hosted API):
+#   fastapi
+#   uvicorn
+#   chromadb
+#   openai
+#   groq
+#   langchain
+#   langchain-openai
+#   python-dotenv
+#
+# NEW: dropped groq / openai / langchain-openai (no hosted API calls left).
+# Added sentence-transformers for the local BioLORD embedding model.
+# requests is used to call the local Ollama server directly (no SDK needed).
+# ─────────────────────────────────────────────────────────────────────────────
+
+fastapi
+uvicorn
+chromadb
+python-dotenv
+requests
+sentence-transformers

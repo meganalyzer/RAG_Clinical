@@ -5,6 +5,20 @@ a text chunk, embeds it, and stores it in a local ChromaDB vector store.
 
 Run this ONCE before starting the app:
     python ingest.py
+
+── OPEN WEIGHT UPDATE ─────────────────────────────────────────────────────
+Swapped the embedding model from chromadb's default (all-MiniLM-L6-v2,
+general-purpose) to BioLORD-2023 (biomedical, open weight). MiniLM does not
+reliably place "hypertension" and "high blood pressure" close together in
+vector space — it was trained on general internet text, not clinical
+literature. BioLORD is trained on medical text and understands clinical
+synonyms, ICD codes, and drug-disease relationships.
+
+If you re-run ingest with a new embedding model, you MUST re-run it fully —
+old vectors from MiniLM and new vectors from BioLORD are not compatible in
+the same collection. The script below already clears existing data before
+re-embedding, so this is handled automatically.
+────────────────────────────────────────────────────────────────────────────
 """
 
 import json
@@ -33,18 +47,24 @@ documents = [patient_to_text(p) for p in patients]
 ids       = [p["patient_id"] for p in patients]
 
 # ── Set up ChromaDB (runs locally, no cloud needed) ──────────────────────────
-# Uses a default sentence-transformer model to embed text into vectors.
-# These vectors are what enable semantic search ("meaning-based" search).
 client = chromadb.PersistentClient(path="./chroma_store")
 
-embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+# OLD — general-purpose default embedding model (all-MiniLM-L6-v2)
+# Doesn't know "hypertension" == "high blood pressure". See README notes.
+# embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+
+# NEW — biomedical embedding model, open weight, understands clinical synonyms
+embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="FremyCompany/BioLORD-2023"
+)
 
 collection = client.get_or_create_collection(
     name="ehr_patients",
     embedding_function=embedding_fn
 )
 
-# Clear existing data so re-runs don't duplicate
+# Clear existing data so re-runs don't duplicate (and so old MiniLM vectors
+# never mix with new BioLORD vectors in the same collection)
 existing = collection.get()
 if existing["ids"]:
     collection.delete(ids=existing["ids"])
@@ -56,5 +76,6 @@ collection.add(
 )
 
 print(f"✅ Ingested {len(documents)} patient records into ChromaDB.")
+print("   Embedding model: FremyCompany/BioLORD-2023 (biomedical, open weight)")
 print("   Vector store saved to ./chroma_store")
-print("   You can now run: python app.py")
+print("   You can now run: uvicorn app:app --reload")

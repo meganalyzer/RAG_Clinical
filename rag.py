@@ -5,25 +5,51 @@ This is the heart of the system.
 ask_question() does exactly 3 things:
     1. RETRIEVE  — search ChromaDB for the most relevant patient chunks
     2. AUGMENT   — build a prompt that includes those chunks as context
-    3. GENERATE  — send that prompt to Groq's LLM and return the answer
+    3. GENERATE  — send that prompt to a local LLM and return the answer
 
 This is what RAG means: Retrieval-Augmented Generation.
+
+── OPEN WEIGHT UPDATE ─────────────────────────────────────────────────────
+Original version called Groq's hosted API. Llama 3's weights are open,
+but routing through Groq still sends every question + patient record
+off your machine to a third-party server.
+
+Swapped to Ollama, which runs the same open-weight Llama model locally.
+Nothing leaves your machine. Old code kept below (commented) so you can
+see exactly what changed and revert if needed.
+────────────────────────────────────────────────────────────────────────────
 """
 
 import os
+import requests
 import chromadb
 from chromadb.utils import embedding_functions
-from groq import Groq
+# from groq import Groq                          # OLD: hosted API client
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # ── Clients ──────────────────────────────────────────────────────────────────
-groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+# OLD — Groq hosted API (requires GROQ_API_KEY, sends data off-machine)
+# groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+# NEW — Local Ollama server, no API key, no external calls
+OLLAMA_URL   = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
 
 chroma_client = chromadb.PersistentClient(path="./chroma_store")
-embedding_fn  = embedding_functions.DefaultEmbeddingFunction()
-collection    = chroma_client.get_collection(
+
+# OLD — chromadb's DefaultEmbeddingFunction (all-MiniLM-L6-v2, general-purpose,
+# does not know "hypertension" == "high blood pressure" — see README notes)
+# embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+
+# NEW — Biomedical embedding model, still open weight, understands clinical
+# synonyms and drug-disease relationships. Must match the model used in ingest.py.
+embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="FremyCompany/BioLORD-2023"
+)
+
+collection = chroma_client.get_collection(
     name="ehr_patients",
     embedding_function=embedding_fn
 )
@@ -70,15 +96,29 @@ QUESTION:
 ANSWER:"""
 
     # ── 3. GENERATE ──────────────────────────────────────────────────────────
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",   # Fast, free, good enough for POC
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2           # Low temp = more factual, less creative
-    )
+    # OLD — Groq hosted API call
+    # response = groq_client.chat.completions.create(
+    #     model="llama-3.3-70b-versatile",   # Fast, free, good enough for POC
+    #     messages=[
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     temperature=0.2           # Low temp = more factual, less creative
+    # )
+    # answer = response.choices[0].message.content.strip()
 
-    answer = response.choices[0].message.content.strip()
+    # NEW — Local Ollama call, same open-weight Llama model, runs on your machine
+    response = requests.post(
+        f"{OLLAMA_URL}/api/generate",
+        json={
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.2}
+        },
+        timeout=120
+    )
+    response.raise_for_status()
+    answer = response.json()["response"].strip()
 
     return {
         "answer": answer,
